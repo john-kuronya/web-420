@@ -30,3 +30,40 @@ describe("Chapter 3: API Tests", () => {
     expect(response.body).toHaveProperty("error", "Book not found");
   });
 });
+
+describe("Chapter 4: API Tests", () => {
+  test("Should return a 201-status code when adding a new book", async () => {
+    const newBook = {
+      id: 6,
+      title: "The Silmarillion",
+      author: "J.R.R. Tolkien"
+    };
+
+    const response = await request(app)
+      .post("/api/books")
+      .send(newBook);
+
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty("id", 6);
+    expect(response.body).toHaveProperty("title", "The Silmarillion");
+  });
+
+  test("Should return a 400-status code when adding a new book with missing title", async () => {
+    const incompleteBook = {
+      id: 7,
+      author: "Anonymous"
+    };
+
+    const response = await request(app)
+      .post("/api/books")
+      .send(incompleteBook);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Book title is required.");
+  });
+
+  test("Should return a 204-status code when deleting a book", async () => {
+    const response = await request(app).delete("/api/books/6");
+    expect(response.status).toBe(204);
+  });
+});

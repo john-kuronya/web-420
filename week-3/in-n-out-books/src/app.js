@@ -8,7 +8,9 @@
 const express = require('express');
 const path = require('path');
 const app = express();
-const books = require('../database/books'); // Add this line to import the books collection
+const books = require('../database/books');
+
+app.use(express.json());
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -18,7 +20,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// ✅ API: GET all books
+// ✅ GET all books
 app.get('/api/books', async (req, res) => {
   try {
     const allBooks = await books.find();
@@ -28,7 +30,7 @@ app.get('/api/books', async (req, res) => {
   }
 });
 
-// ✅ API: GET book by ID
+// ✅ GET book by ID
 app.get('/api/books/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -48,6 +50,43 @@ app.get('/api/books/:id', async (req, res) => {
   }
 });
 
+// ✅ POST a new book
+app.post('/api/books', async (req, res) => {
+  try {
+    const newBook = req.body;
+
+    if (!newBook.title) {
+      return res.status(400).json({ error: 'Book title is required.' });
+    }
+
+    await books.insertOne(newBook);
+    res.status(201).json(newBook); // ⬅️ Return the book directly
+  } catch (err) {
+    console.error("POST error:", err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ✅ DELETE a book by ID
+app.delete('/api/books/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    await books.deleteOne({ id });
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.message === 'No matching item found') {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+    console.error("DELETE error:", err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // 404 Middleware
 app.use((req, res, next) => {
   res.status(404).send('<h1>404 - Page Not Found</h1>');
@@ -63,6 +102,7 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
 
 
 
