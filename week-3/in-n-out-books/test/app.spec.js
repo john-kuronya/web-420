@@ -67,3 +67,45 @@ describe("Chapter 4: API Tests", () => {
     expect(response.status).toBe(204);
   });
 });
+
+describe("Chapter 5: API Tests", () => {
+  test("Should update a book and return a 204-status code", async () => {
+    const updatedBook = {
+      title: "The Fellowship of the Ring - Revised",
+      author: "J.R.R. Tolkien"
+    };
+
+    const response = await request(app)
+      .put("/api/books/1")
+      .send(updatedBook);
+
+    expect(response.status).toBe(204);
+  });
+
+  test("Should return a 400-status code when using a non-numeric id", async () => {
+    const updatedBook = {
+      title: "Invalid Update",
+      author: "Someone"
+    };
+
+    const response = await request(app)
+      .put("/api/books/foo")
+      .send(updatedBook);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Input must be a number");
+  });
+
+  test("Should return a 400-status code when updating a book with a missing title", async () => {
+    const incompleteBook = {
+      author: "J.R.R. Tolkien"
+    };
+
+    const response = await request(app)
+      .put("/api/books/1")
+      .send(incompleteBook);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Book title is required.");
+  });
+});

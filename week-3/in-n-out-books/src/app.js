@@ -67,6 +67,31 @@ app.post('/api/books', async (req, res) => {
   }
 });
 
+// ✅ PUT update book by ID
+app.put('/api/books/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const updatedBook = req.body;
+
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Input must be a number' });
+    }
+
+    if (!updatedBook.title) {
+      return res.status(400).json({ error: 'Book title is required.' });
+    }
+
+    await books.updateOne({ id }, updatedBook);
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.message === 'No matching item found') {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+    console.error("PUT error:", err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ✅ DELETE a book by ID
 app.delete('/api/books/:id', async (req, res) => {
   try {
@@ -102,6 +127,7 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
 
 
 
