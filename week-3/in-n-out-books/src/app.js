@@ -7,8 +7,10 @@
 
 const express = require('express');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const app = express();
 const books = require('../database/books');
+const users = require('../database/users');
 
 app.use(express.json());
 
@@ -112,6 +114,33 @@ app.delete('/api/books/:id', async (req, res) => {
   }
 });
 
+// ✅ POST user login
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Bad Request' });
+    }
+
+    const user = await users.findOne({ email });
+
+    const isPasswordValid = bcrypt.compareSync(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    res.status(200).json({ message: 'Authentication successful' });
+  } catch (err) {
+    if (err.message === 'No matching item found') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    console.error("LOGIN error:", err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // 404 Middleware
 app.use((req, res, next) => {
   res.status(404).send('<h1>404 - Page Not Found</h1>');
@@ -127,6 +156,7 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
 
 
 

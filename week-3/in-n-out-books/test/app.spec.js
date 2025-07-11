@@ -109,3 +109,33 @@ describe("Chapter 5: API Tests", () => {
     expect(response.body).toHaveProperty("error", "Book title is required.");
   });
 });
+
+describe("Chapter 6: API Tests", () => {
+  test("It should log a user in and return a 200-status with 'Authentication successful' message", async () => {
+    const response = await request(app)
+      .post("/api/login")
+      .send({ email: "harry@hogwarts.edu", password: "potter" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: "Authentication successful" });
+  });
+
+  test("It should return a 401-status code with 'Unauthorized' message when logging in with incorrect credentials", async () => {
+    const response = await request(app)
+      .post("/api/login")
+      .send({ email: "harry@hogwarts.edu", password: "wrongpassword" });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: "Unauthorized" });
+  });
+
+  test("It should return a 400-status code with 'Bad Request' when missing email or password", async () => {
+    const response = await request(app)
+      .post("/api/login")
+      .send({ email: "harry@hogwarts.edu" });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Bad Request" });
+  });
+});
+
