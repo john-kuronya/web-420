@@ -139,3 +139,48 @@ describe("Chapter 6: API Tests", () => {
   });
 });
 
+describe("Chapter 7: API Tests", () => {
+  test("It should return a 200 status with 'Security questions successfully answered' message", async () => {
+    const response = await request(app)
+      .post("/api/users/harry@hogwarts.edu/verify-security-question")
+      .send({
+        securityQuestions: [
+          { question: "What is your pet's name?", answer: "Hedwig" },
+          { question: "What is your favorite book?", answer: "Quidditch Through the Ages" },
+          { question: "What is your mother's maiden name?", answer: "Evans" },
+        ]
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: "Security questions successfully answered" });
+  });
+
+  test("It should return a 400 status code with 'Bad Request' message when the request body fails ajv validation", async () => {
+    const response = await request(app)
+      .post("/api/users/harry@hogwarts.edu/verify-security-question")
+      .send({
+        // Missing required 'answer' fields
+        securityQuestions: [
+          { question: "What is your pet's name?" }
+        ]
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "Bad Request" });
+  });
+
+  test("It should return a 401 status code with 'Unauthorized' message when the security questions are incorrect", async () => {
+    const response = await request(app)
+      .post("/api/users/harry@hogwarts.edu/verify-security-question")
+      .send({
+        securityQuestions: [
+          { question: "What is your pet's name?", answer: "Fluffy" },
+          { question: "What is your favorite book?", answer: "The Hobbit" },
+          { question: "What is your mother's maiden name?", answer: "Smith" },
+        ]
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: "Unauthorized" });
+  });
+});

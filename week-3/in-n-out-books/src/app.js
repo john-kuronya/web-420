@@ -8,10 +8,12 @@
 const express = require('express');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const Ajv = require('ajv');
 const app = express();
 const books = require('../database/books');
 const users = require('../database/users');
 
+const ajv = new Ajv();
 app.use(express.json());
 
 // Serve static files
@@ -47,7 +49,6 @@ app.get('/api/books/:id', async (req, res) => {
     if (err.message === 'No matching item found') {
       return res.status(404).json({ error: 'Book not found' });
     }
-
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -62,7 +63,7 @@ app.post('/api/books', async (req, res) => {
     }
 
     await books.insertOne(newBook);
-    res.status(201).json(newBook); // ⬅️ Return the book directly
+    res.status(201).json(newBook);
   } catch (err) {
     console.error("POST error:", err.message);
     res.status(500).json({ error: 'Server error' });
@@ -124,7 +125,6 @@ app.post('/api/login', async (req, res) => {
     }
 
     const user = await users.findOne({ email });
-
     const isPasswordValid = bcrypt.compareSync(password, user.password);
 
     if (!isPasswordValid) {
@@ -138,6 +138,63 @@ app.post('/api/login', async (req, res) => {
     }
     console.error("LOGIN error:", err.message);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ✅ POST verify security questions
+const securityQuestionsSchema = {
+  type: "object",
+  properties: {
+    securityQuestions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          question: { type: "string" },
+          answer: { type: "string" }
+        },
+        required: ["question", "answer"],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ["securityQuestions"],
+  additionalProperties: false
+};
+
+app.post("/api/users/:email/verify-security-question", async (req, res) => {
+  try {
+    const validate = ajv.compile(securityQuestionsSchema);
+    const isValid = validate(req.body);
+
+    if (!isValid) {
+      return res.status(400).json({ error: "Bad Request" });
+    }
+
+    const { email } = req.params;
+    const { securityQuestions } = req.body;
+    const user = await users.findOne({ email });
+
+    const savedQuestions = user.securityQuestions;
+
+    const answersMatch = savedQuestions.every((saved, index) => {
+      return (
+        saved.question === securityQuestions[index].question &&
+        saved.answer === securityQuestions[index].answer
+      );
+    });
+
+    if (!answersMatch) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    res.status(200).json({ message: "Security questions successfully answered" });
+  } catch (err) {
+    if (err.message === "No matching item found") {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -156,6 +213,7 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
 
 
 
